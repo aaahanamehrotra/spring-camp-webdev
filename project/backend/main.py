@@ -1,9 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException
 from auth.authentication import oauth2_scheme, get_current_user, create_access_token, create_refresh_token, logout_user
 from models.user import User
-from data.users import users_db
+
 from fastapi.security import OAuth2PasswordRequestForm
 from utils.password import hash_password, verify_password
+import os
+from dotenv import load_dotenv, dotenv_values 
+load_dotenv() 
+
+
 
 app = FastAPI()
 
@@ -11,7 +16,7 @@ app = FastAPI()
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
-uri = "mongodb+srv://aaahanamehrotra7:NjPrQkADqHKpxAuG@cluster0.tzautnp.mongodb.net/?appName=Cluster0"
+uri = os.getenv("MONGODB_URI")
 
 # Create a new client and connect to the server
 client = MongoClient(uri, server_api=ServerApi('1'))
@@ -32,27 +37,26 @@ refresh_token_collection = db["refresh_tokens"]
 
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = users_db.get(form_data.username)
+    user = users_collection.find_one({"username": form_data.username})
     print(hash_password(form_data.password))
     print("haha")
     print("Verifying password for user:", form_data.username)
     print(user)
-    if user is None or not verify_password(form_data.password, user.password):
+    if user is None or not verify_password(form_data.password, user["password"]):
         raise HTTPException(status_code=400)
-    print("Creating tokens for user:", user.username)
+    print("Creating tokens for user:", user["username"])
 
-    access_token = create_access_token({"sub": user.username})
+    access_token = create_access_token({"sub": user["username"]})
     print("Access token created:", access_token)
-    refresh_token = create_refresh_token({"sub": user.username})
+    refresh_token = create_refresh_token({"sub": user["username"]})
     print("Refresh token created:", refresh_token)
 
     refresh_token_collection.insert_one({
-        "user": user.username,
+        "user": user["username"],
         "token": refresh_token,
         "revoked": False
     })
-    print("Refresh token stored in database for user:", user.username)
-
+    print("Refresh token stored in database for user:", user["username"])
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -69,7 +73,7 @@ async def protected_route(username: str = Depends(get_current_user)):
 async def logout(token: str = Depends(oauth2_scheme), username: str = Depends(get_current_user)):
     logout_user(token)
 
-    await refresh_token_collection.update_many(
+    refresh_token_collection.update_many(
         {"user": username},
         {"$set": {"revoked": True}}
     )
@@ -96,7 +100,10 @@ async def signup(data: User):
     hashed_password = hash_password(data.password)
 
     # Create user
+    users_collection.insert_one({
+        "username": data.username,
+        "password": hashed_password
+    })
 
-    users_db[data.username] = User(username=data.username, password=hashed_password)
 
     return {"message": "User created successfully"}

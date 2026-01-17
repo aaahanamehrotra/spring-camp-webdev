@@ -39,7 +39,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credentials_exception
 
-def logout_user(username: str, token: str = Depends(oauth2_scheme)):
+def logout_user(token: str):
     # Logic to revoke tokens for the user
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     username = payload.get("sub")
