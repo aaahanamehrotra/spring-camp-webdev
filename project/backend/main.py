@@ -74,7 +74,7 @@ async def protected_route(username: str = Depends(get_current_user)):
 async def create_task(task: str, username: str = Depends(get_current_user)):
     print(f"Creating task for user: {username} with task: {task}")
     tasks_collection.insert_one({
-        # "user": username,
+        "user": username,
         "task": task
     })
     return {"message": f"Task {task} created for user {username}"}
@@ -117,3 +117,8 @@ async def signup(data: User):
 
 
     return {"message": "User created successfully"}
+
+@app.get("/tasks")
+async def get_tasks(username: str = Depends(get_current_user)):
+    tasks = list(tasks_collection.find({"user": username}, {"_id": 0}))
+    return {"tasks": tasks}
