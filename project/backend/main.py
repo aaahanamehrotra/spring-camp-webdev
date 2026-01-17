@@ -75,3 +75,28 @@ async def logout(token: str = Depends(oauth2_scheme), username: str = Depends(ge
     )
 
     return {"message": "Logged out successfully"}
+
+
+
+
+
+@app.post("/signup")
+async def signup(data: User):
+    # Check if user already exists
+    existing_user = users_collection.find_one(
+        {"username": data.username}
+    )
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already exists"
+        )
+
+    # Hash password
+    hashed_password = hash_password(data.password)
+
+    # Create user
+
+    users_db[data.username] = User(username=data.username, password=hashed_password)
+
+    return {"message": "User created successfully"}
