@@ -53,6 +53,18 @@ def login_page():
 def dashboard():
     st.title("Dashboard")
     st.write(f"Welcome, **{st.session_state.username}**")
+    task = st.text_input("Task")
+    if st.button("Create Task"):
+        headers = {
+            "Authorization": f"Bearer {st.session_state.token}"
+        }
+        response = requests.post(
+            f"{API_URL}/create_task",
+            headers=headers,
+            params={"task": task}
+        )
+        st.success("Task created successfully!")
+        # st.json(response.json())
 
     if st.button("Call protected API"):
         headers = {

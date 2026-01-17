@@ -69,6 +69,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 async def protected_route(username: str = Depends(get_current_user)):
     return {"message": f"Hello, {username}! This is a protected resource."}
 
+
+@app.post("/create_task")
+async def create_task(task: str, username: str = Depends(get_current_user)):
+    print(f"Creating task for user: {username} with task: {task}")
+    tasks_collection.insert_one({
+        # "user": username,
+        "task": task
+    })
+    return {"message": f"Task {task} created for user {username}"}
+
 @app.post("/logout")
 async def logout(token: str = Depends(oauth2_scheme), username: str = Depends(get_current_user)):
     logout_user(token)
